@@ -1,11 +1,11 @@
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 
 	"github.com/ZweWT/Go-Test.git/internal/data"
+	"github.com/ZweWT/Go-Test.git/internal/validator"
 )
 
 func (app *application) createTodoHandler(w http.ResponseWriter, r *http.Request) {
@@ -13,9 +13,29 @@ func (app *application) createTodoHandler(w http.ResponseWriter, r *http.Request
 		Name string `json:"title"`
 	}
 
-	err := json.NewDecoder(r.Body).Decode(&input)
+	err := app.readJSON(w, r, &input)
 	if err != nil {
-		app.errorResponse(w, r, http.StatusBadRequest, err.Error())
+		app.badRequestResponse(w, r, err)
+		return
+	}
+
+	user := app.contextGetUser(r)
+
+	todo := &data.Todo{
+		Name:   input.Name,
+		UserID: user.ID,
+	}
+
+	v := validator.New()
+
+	if data.ValidateTodo(v, todo); !v.Valid() {
+		app.failedValidationResponse(w, r, v.Errors)
+		return
+	}
+
+	err = app.models.Todo.Insert(todo)
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
 		return
 	}
 
@@ -35,4 +55,15 @@ func (app *application) showTodoHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	app.successResponse(w, r, http.StatusOK, todo, nil)
+}
+
+func (app *application) listTodoHandler(w http.ResponseWriter, r *http.Request) {
+
+	todos, err := app.models.Todo.GetAll()
+	if err != nil {
+		app.serverErrorResponse(w, r, err)
+		return
+	}
+
+	app.successResponse(w, r, http.StatusOK, todos, nil)
 }
