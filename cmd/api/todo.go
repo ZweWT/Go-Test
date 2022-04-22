@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -49,9 +50,14 @@ func (app *application) showTodoHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	todo := data.Todo{
-		ID:   id,
-		Name: "Gopppp",
+	todo, err := app.models.Todo.Get(id)
+	if err != nil {
+		switch {
+		case errors.Is(err, data.ErrRecordNotFound):
+			app.notFoundResponse(w, r)
+		default:
+			app.serverErrorResponse(w, r, err)
+		}
 	}
 
 	app.successResponse(w, r, http.StatusOK, todo, nil)

@@ -27,4 +27,4 @@ db/migrations/new:
 .PHONY: db/migrations/up
 db/migrations/up:
 	@echo 'Running up migrations...'
-	bin/./migrate -path ./migrations -database ${GOTEST_DB_DSN} up
+	bin/./migrate -path ./migrations -database 	 up
